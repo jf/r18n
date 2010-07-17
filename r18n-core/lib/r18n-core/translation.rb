@@ -109,6 +109,38 @@ module R18n
       end
     end
     
+    attr_reader :data
+
+    def js_objectify(*paths)
+      ret = "var t = {}\n"
+      paths.each do |path|
+        data_tree = @data[path]
+        next if !data_tree or !data_tree.is_a? R18n::Translation
+        ret += "t.#{path} = {"
+        data_tree.data.keys.each do |k|
+          ret += property_colon_value(data_tree.data, k)
+        end
+        ret = ret.chop.chop + "}\n"
+      end
+      ret
+    end
+
+    # used by 'js_objectify'
+    def property_colon_value(data, k)
+      value = data[k]
+      if value.is_a? String
+        return "'#{k}': '#{value.gsub("'", "\\\\'")}', "
+      elsif value.is_a? R18n::Translation
+        ret = "'#{k}': {"
+        value.data.keys.each do |k|
+          ret += property_colon_value(value.data, k)
+        end
+        ret.chop.chop + "}, "
+      else
+        ""
+      end
+    end
+
     # Use untranslated filter to print path.
     def to_s
       Filters.process(Filters.enabled, Untranslated, @path, @locale, @path,
